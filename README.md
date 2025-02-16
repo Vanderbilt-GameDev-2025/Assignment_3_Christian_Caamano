@@ -1,1 +1,2 @@
-# Assignment_3_Christian_Caamano
+# Working coilgun with real magnet physics
+
