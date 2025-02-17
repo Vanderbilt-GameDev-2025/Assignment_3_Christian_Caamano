@@ -45,6 +45,59 @@ public:
      */
     ~MagneticBody3D();
 
+    // --- Getters ---
+
+    /**
+     * Gets the static magnets registry.
+     */
+    static std::vector<MagneticBody3D*>& get_magnets_registry();
+
+    /**
+     * Gets the magnet type for this object.
+     */
+    MagnetTypes get_magnet_type() const;
+
+    /**
+     * Gets the strength for this object.
+     */
+    double get_strength() const;
+
+    /**
+     * Gets the square of the radius of the sphere of influence for this magnet.
+     */
+    double get_max_influence_radius_sqr();
+
+    /**
+     * Returns true if this magnet is on, false if off.
+     */
+    bool is_on();
+
+
+    // --- Core magnetism methods ---
+
+    /**
+     * Determines if this magnet will be influenced by another magnet.
+     * The other magnet will only exert an influence on this one if this one lies within the other's sphere of influence,
+     * as defined by its maxInfluenceRadiusSqr.
+     * 
+     * @param other The other magnet which may or may not exert an influence on this object.
+     */
+    bool will_be_influenced_by(const MagneticBody3D& other);
+
+    /**
+     * Calculates the magnetic force exerted on this magnet by another magnet.
+     * 
+     * @param other The other magnet.
+     */
+    Vector3 calculate_force_from_magnet(const MagneticBody3D& other) const;
+
+    /**
+     * Calculates the torque exerted on this magnet by another magnet due to their dipoles seeking to align.
+     * 
+     * @param other The other magnet.
+     */
+    Vector3 calculate_torque_from_magnet(const MagneticBody3D& other) const;
+
     /**
      * Called when the node enters the scene tree for the first time.
      * Initializes this magnetic object's properties.
@@ -103,23 +156,13 @@ private:
 
     // --- Getters and setters ---
 
-    // NOTE: The getters and setters for strength and magnet type are private, as these properties
+    // NOTE: The setters for strength and magnet type are private, as these properties
     // are meant to be invariant during runtime. They can only be changed in the editor.
-
-    /**
-     * Gets the strength for this object.
-     */
-    double get_strength() const;
 
     /**
      * Sets the strength for this object.
      */
     void set_strength(const double newStrength);
-
-    /**
-     * Gets the magnet type for this object.
-     */
-    MagnetTypes get_magnet_type() const;
 
     /**
      * Sets the magnet type for this object.
@@ -142,27 +185,9 @@ private:
      * @param magnet The magnet to remove from the registry.
      */
     static void unregister_magnet(MagneticBody3D* magnet);
-
-
-    // --- Core magnetism methods ---
-
-    /**
-     * Determines if this magnet will be influenced by another magnet.
-     * The other magnet will only exert an influence on this one if this one lies within the other's sphere of influence,
-     * as defined by its maxInfluenceRadiusSqr.
-     * 
-     * @param other The other magnet which may or may not exert an influence on this object.
-     */
-    bool willBeInfluencedBy(const MagneticBody3D& other);
-
-    /**
-     * Calculates the magnetic force exerted on this magnet by another magnet.
-     * 
-     * @param other The other magnet.
-     */
-    Vector3 calculate_force_from_magnet(const MagneticBody3D& other) const;
 };
 
+// Register MagnetTypes enum with Godot.
 VARIANT_ENUM_CAST(MagneticBody3D::MagnetTypes);
 
 

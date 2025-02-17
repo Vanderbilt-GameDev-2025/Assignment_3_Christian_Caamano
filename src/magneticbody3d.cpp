@@ -3,6 +3,7 @@
 #include <godot_cpp/variant/utility_functions.hpp>
 #include <godot_cpp/classes/scene_tree.hpp>
 #include <godot_cpp/classes/viewport.hpp>
+#include <cmath>
 
 using namespace godot;
 
@@ -39,7 +40,7 @@ void MagneticBody3D::_bind_methods() {
 
 // --- Core methods / magnetic physics calculations ---
 
-bool MagneticBody3D::willBeInfluencedBy(const MagneticBody3D& other) {
+bool MagneticBody3D::will_be_influenced_by(const MagneticBody3D& other) {
     // If the other magnet is off, no influence.
     if (!other.on) {
         return false;
@@ -61,30 +62,51 @@ bool MagneticBody3D::willBeInfluencedBy(const MagneticBody3D& other) {
 }
 
 Vector3 MagneticBody3D::calculate_force_from_magnet(const MagneticBody3D& other) const {
-    // Calculate distance between this magnet and the other.
-    Vector3 thisPos = get_global_position();
-    Vector3 otherPos = other.get_global_position();
-    Vector3 distanceVec = otherPos - thisPos;
-    float distance = distanceVec.length();
+    // Modified force equation for game-appropriate magnitudes
+    // Still maintains inverse square law behavior but scaled for gameplay
+    const double FORCE_SCALING = 100.0; // Scaling factor to make forces visible
     
-    // Get pole orientations (using forward vector)
-    Vector3 thisOrientation = get_global_transform().basis.get_column(2).normalized();
-    Vector3 otherOrientation = other.get_global_transform().basis.get_column(2).normalized();
+    Vector3 r = other.get_global_position() - get_global_position();
+    double r_len = r.length();
     
-    // Calculate force magnitude using inverse square law
-    float forceMagnitude = (strength * other.get_strength()) / (distance * distance);
+    // Prevent division by zero and too large forces at very small distances
+    if (r_len < 0.01) r_len = 0.01;
     
-    // Calculate alignment factor (-1 to 1)
-    float alignment = thisOrientation.dot(otherOrientation);
+    Vector3 r_hat = r / r_len;
     
-    // Modify force based on alignment (opposite poles attract)
-    forceMagnitude *= -alignment;
+    // Get forward directions of both magnets
+    Vector3 m1_dir = get_global_transform().basis.get_column(2).normalized();
+    Vector3 m2_dir = other.get_global_transform().basis.get_column(2).normalized();
     
-    // Apply scaling factor
-    forceMagnitude *= 10.0f;
+    // Calculate alignment factor (-1 to 1) to determine attraction/repulsion
+    double alignment = m1_dir.dot(m2_dir);
     
-    // Return force vector
-    return distanceVec.normalized() * forceMagnitude;
+    // Basic inverse square law with alignment
+    double force_magnitude = FORCE_SCALING * strength * other.strength * alignment / (r_len * r_len);
+    
+    return r_hat * force_magnitude;
+}
+
+Vector3 MagneticBody3D::calculate_torque_from_magnet(const MagneticBody3D& other) const {
+    const double TORQUE_SCALING = 10.0; // Scaling factor for readable torque
+    
+    Vector3 r = other.get_global_position() - get_global_position();
+    double r_len = r.length();
+    
+    // Prevent extreme torques at very small distances
+    if (r_len < 0.1) r_len = 0.1;
+    
+    // Get magnet directions
+    Vector3 m1_dir = get_global_transform().basis.get_column(2).normalized();
+    Vector3 m2_dir = other.get_global_transform().basis.get_column(2).normalized();
+    
+    // Calculate torque that tries to align the magnets
+    Vector3 torque = m1_dir.cross(m2_dir);
+    
+    // Scale torque by strength and distance
+    double torque_magnitude = TORQUE_SCALING * strength * other.strength / (r_len * r_len);
+    
+    return torque * torque_magnitude;
 }
 
 void MagneticBody3D::_ready() {
@@ -99,7 +121,7 @@ void MagneticBody3D::_ready() {
     }
 
     // Define influence radius according to the magnet's strength.
-    maxInfluenceRadiusSqr = strength * strength * 100.0;
+    maxInfluenceRadiusSqr = strength * strength * 500.0;
 
     // Register this magnet with the static collection of all magnets in the scene.
     register_magnet(this);
@@ -112,12 +134,15 @@ void MagneticBody3D::_physics_process(double delta) {
     // Apply forces to this magnet.
     for (const auto& otherMagnet : sceneMagnetsRegistry) {
         if (otherMagnet != this) {
-            if (willBeInfluencedBy(*otherMagnet)) {
+            if (will_be_influenced_by(*otherMagnet)) {
                 if (magnetType == Temporary) {
                     magnetized = true;
                 }
                 Vector3 force = calculate_force_from_magnet(*otherMagnet);
+                Vector3 torque = calculate_torque_from_magnet(*otherMagnet);
+
                 apply_central_force(force);
+                apply_torque(torque);
             }
         }
     }
@@ -141,6 +166,10 @@ void MagneticBody3D::unregister_magnet(MagneticBody3D* magnet) {
 
 
 // --- Getters and setters ---
+// Magnet registry
+std::vector<MagneticBody3D*>& MagneticBody3D::get_magnets_registry() {
+    return sceneMagnetsRegistry;
+}
 
 // Magnet type
 MagneticBody3D::MagnetTypes MagneticBody3D::get_magnet_type() const {
@@ -156,4 +185,14 @@ double MagneticBody3D::get_strength() const {
 }
 void MagneticBody3D::set_strength(const double newStrength) {
     strength = newStrength;
+}
+
+// Influence radius
+double MagneticBody3D::get_max_influence_radius_sqr() {
+    return maxInfluenceRadiusSqr;
+}
+
+// Activation
+bool MagneticBody3D::is_on() {
+    return on;
 }

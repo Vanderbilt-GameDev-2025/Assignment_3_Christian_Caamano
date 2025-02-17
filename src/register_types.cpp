@@ -1,6 +1,7 @@
 #include "register_types.h"
 
 #include "magneticbody3d.h"
+#include "magneticdebugdraw.h"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/defs.hpp>
@@ -14,6 +15,7 @@ void initialize_magnetism_module(ModuleInitializationLevel p_level) {
 		return;
 	}
     GDREGISTER_CLASS(MagneticBody3D);
+    GDREGISTER_CLASS(MagneticDebugDraw);
 }
 
 void uninitialize_magnetism_module(ModuleInitializationLevel p_level) {
