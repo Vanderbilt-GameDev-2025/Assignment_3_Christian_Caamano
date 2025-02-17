@@ -8,7 +8,7 @@
 #include <godot_cpp/classes/physics_body3d.hpp>
 #include <godot_cpp/classes/rigid_body3d.hpp>
 
-namespace godot {
+using namespace godot;
 
 /**
  * Extends the physics engine (Jolt) to support magnetic objects in a 3D environment.
@@ -16,20 +16,55 @@ namespace godot {
  * 1. Realistic dipole physics and interactions (differing attraction/repulsion depending on orientation & position)
  * 2. Permanent magnets: objects that are always magnets
  * 3. Temporary magnets: objects that temporarily become magnets when in the presence of a magnetic field
- * 4. Electromagnets (kind of): magnetism can be turned on/off on demand for these objects, simulating electromagnetism
+ * 4. Electromagnets: magnetism can be turned on/off on demand for these objects, simulating electromagnetism
  */
-class MagneticBody3D : public RigidBody3D{
+class MagneticBody3D : public RigidBody3D {
     GDCLASS(MagneticBody3D, RigidBody3D)
 
-private:
+public:
+
+    // --- Public fields ---
+
     /**
      * The different types of magnets supported.
      */
-    enum class MagnetTypes {
+    enum MagnetTypes {
         Permanent,
         Temporary,
         Electromagnet
     };
+    
+
+    // --- Public methods ---
+
+    /** Default constructor */ 
+    MagneticBody3D() = default;
+
+    /**
+     * Destructor; unregisters this magnet from the registry before destruction.
+     */
+    ~MagneticBody3D();
+
+    /**
+     * Called when the node enters the scene tree for the first time.
+     * Initializes this magnetic object's properties.
+     */
+    virtual void _ready() override;
+
+    /**
+     * Accumulates and applies to this magnet the forces exerted by all other magnets in the scene for the current physics frame.
+     */
+    virtual void _physics_process(double delta) override;
+
+protected:
+    /**
+     * Binds methods and registers properties for the editor.
+     */
+    static void _bind_methods();
+    
+private:
+
+    // --- Private fields ---
 
     /**
      * The magnet type for this object.
@@ -42,7 +77,11 @@ private:
      */
     bool on;
 
-    // TODO: add any additional necessary private variables
+    /**
+     * Defines whether a temporary magnet is currently magnetized or not.
+     * Temporary magnets become magnetized when in the presence of another magnetic field.
+     */
+    bool magnetized;
 
     /**
      * Defines the strength of this magnet. Stronger magnets exert more attractive/repulsive force.
@@ -57,7 +96,58 @@ private:
     double maxInfluenceRadiusSqr;
 
     /**
-     * Determine if this magnet will be influenced by another magnet.
+     * Collection containing references to all the magnets in the scene.
+     */
+    static std::vector<MagneticBody3D*> sceneMagnetsRegistry;
+
+
+    // --- Getters and setters ---
+
+    // NOTE: The getters and setters for strength and magnet type are private, as these properties
+    // are meant to be invariant during runtime. They can only be changed in the editor.
+
+    /**
+     * Gets the strength for this object.
+     */
+    double get_strength() const;
+
+    /**
+     * Sets the strength for this object.
+     */
+    void set_strength(const double newStrength);
+
+    /**
+     * Gets the magnet type for this object.
+     */
+    MagnetTypes get_magnet_type() const;
+
+    /**
+     * Sets the magnet type for this object.
+     */
+    void set_magnet_type(const MagnetTypes type);
+
+
+    // --- Magnet registry methods ---
+
+    /**
+     * Adds the specified magnet to the scene registry (sceneMagnetsRegistry).
+     * 
+     * @param magnet The magnet to add to the registry.
+     */
+    static void register_magnet(MagneticBody3D* magnet);
+
+    /**
+     * Removes the specified magnet from the scene registry (sceneMagnetsRegistry).
+     * 
+     * @param magnet The magnet to remove from the registry.
+     */
+    static void unregister_magnet(MagneticBody3D* magnet);
+
+
+    // --- Core magnetism methods ---
+
+    /**
+     * Determines if this magnet will be influenced by another magnet.
      * The other magnet will only exert an influence on this one if this one lies within the other's sphere of influence,
      * as defined by its maxInfluenceRadiusSqr.
      * 
@@ -65,51 +155,15 @@ private:
      */
     bool willBeInfluencedBy(const MagneticBody3D& other);
 
-    // TODO: add any additional necessary private methods
-
-protected:
     /**
-     * Bind methods and register properties for the editor.
+     * Calculates the magnetic force exerted on this magnet by another magnet.
+     * 
+     * @param other The other magnet.
      */
-    static void _bind_methods();
-    
-public:
-    // Default constructor/destructor
-    MagneticBody3D() = default;
-    ~MagneticBody3D() = default;
-    
-    /**
-     * Called when the node enters the scene tree for the first time.
-     * Initializes this magnetic object's properties.
-     */
-    virtual void _ready() override;
-
-    // TODO: add doc comment here
-    virtual void _physics_process(double delta) override;
-
-    // TODO: add any additional necessary public methods
-
-    /**
-     * Get the magnet type for this object.
-     */
-    MagnetTypes get_magnet_type() const;
-
-    /**
-     * Set the magnet type for this object.
-     */
-    void set_magnet_type(const MagnetTypes type);
-
-    /**
-     * Get the strength for this object.
-     */
-    double get_strength() const;
-
-    /**
-     * Set the strength for this object.
-     */
-    void set_strength(const double newStrength);
+    Vector3 calculate_force_from_magnet(const MagneticBody3D& other) const;
 };
 
-}  // namespace godot
+VARIANT_ENUM_CAST(MagneticBody3D::MagnetTypes);
+
 
 #endif // MAGNETIC_BODY_3D_H

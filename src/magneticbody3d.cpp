@@ -6,8 +6,25 @@
 
 using namespace godot;
 
+// --- Class initialization and destruction ---
+
+// Initialize static registry
+std::vector<MagneticBody3D*> MagneticBody3D::sceneMagnetsRegistry;
+
+MagneticBody3D::~MagneticBody3D() {
+    // Remove magnet from static registry
+    unregister_magnet(this);
+}
+
+
+// --- Godot bindings ---
+
 void MagneticBody3D::_bind_methods() {
     // Property bindings
+    BIND_ENUM_CONSTANT(Permanent);
+    BIND_ENUM_CONSTANT(Temporary);
+    BIND_ENUM_CONSTANT(Electromagnet);
+    
     ClassDB::bind_method(D_METHOD("set_magnet_type", "type"), &MagneticBody3D::set_magnet_type);
     ClassDB::bind_method(D_METHOD("get_magnet_type"), &MagneticBody3D::get_magnet_type);
 
@@ -19,10 +36,21 @@ void MagneticBody3D::_bind_methods() {
     ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "strength"), "set_strength", "get_strength");
 }
 
+
+// --- Core methods / magnetic physics calculations ---
+
 bool MagneticBody3D::willBeInfluencedBy(const MagneticBody3D& other) {
     // If the other magnet is off, no influence.
     if (!other.on) {
         return false;
+    }
+
+    // If this is a temporary magnet and the other is also a temporary magnet,
+    // the other should only potentially exert a force if it has become magnetized.
+    if (magnetType == Temporary && other.magnetType == Temporary) {
+        if (other.magnetized == false) {
+            return false;
+        }
     }
     
     // Get the vector from this magnet to the other.
@@ -32,30 +60,87 @@ bool MagneticBody3D::willBeInfluencedBy(const MagneticBody3D& other) {
     return distance.length_squared() <= other.maxInfluenceRadiusSqr;
 }
 
+Vector3 MagneticBody3D::calculate_force_from_magnet(const MagneticBody3D& other) const {
+    // Calculate distance between this magnet and the other.
+    Vector3 thisPos = get_global_position();
+    Vector3 otherPos = other.get_global_position();
+    Vector3 distanceVec = otherPos - thisPos;
+    float distance = distanceVec.length();
+    
+    // Get pole orientations (using forward vector)
+    Vector3 thisOrientation = get_global_transform().basis.get_column(2).normalized();
+    Vector3 otherOrientation = other.get_global_transform().basis.get_column(2).normalized();
+    
+    // Calculate force magnitude using inverse square law
+    float forceMagnitude = (strength * other.get_strength()) / (distance * distance);
+    
+    // Calculate alignment factor (-1 to 1)
+    float alignment = thisOrientation.dot(otherOrientation);
+    
+    // Modify force based on alignment (opposite poles attract)
+    forceMagnitude *= -alignment;
+    
+    // Apply scaling factor
+    forceMagnitude *= 10.0f;
+    
+    // Return force vector
+    return distanceVec.normalized() * forceMagnitude;
+}
+
 void MagneticBody3D::_ready() {
-    // Initialize properties specific to this object's magnet type.
-    switch (magnetType) {
-        case MagnetTypes::Permanent:
-            on = true;
-            break;
-        case MagnetTypes::Temporary:
-            on = true;
-            break;
-        case MagnetTypes::Electromagnet:
-            on = false;
-            break;
-        default:
-            UtilityFunctions::print("Object magnet type not set to a valid type in _ready!");
-            break;
+    // At the start of the scene, establish the following environment:
+    // - Permanent magnets are on
+    // - Temporary magnets are on, but start off not magnetized
+    // - Electromagnets are off (until turned on on-demand in-game)
+    on = true;
+    magnetized = false;
+    if (magnetType == Electromagnet) {
+        on = false;
     }
 
     // Define influence radius according to the magnet's strength.
-    maxInfluenceRadiusSqr = strength * 10.0;
+    maxInfluenceRadiusSqr = strength * strength * 100.0;
+
+    // Register this magnet with the static collection of all magnets in the scene.
+    register_magnet(this);
 }
 
-// TODO: add additional method implementations
+void MagneticBody3D::_physics_process(double delta) {
+    // If this magnet is currently off, it should be excluded from magnetism calculations.
+    if (!on) return;
 
-// Getters and setters
+    // Apply forces to this magnet.
+    for (const auto& otherMagnet : sceneMagnetsRegistry) {
+        if (otherMagnet != this) {
+            if (willBeInfluencedBy(*otherMagnet)) {
+                if (magnetType == Temporary) {
+                    magnetized = true;
+                }
+                Vector3 force = calculate_force_from_magnet(*otherMagnet);
+                apply_central_force(force);
+            }
+        }
+    }
+}
+
+
+// --- Magnet registry management ---
+
+void MagneticBody3D::register_magnet(MagneticBody3D* magnet) {
+    if (std::find(sceneMagnetsRegistry.begin(), sceneMagnetsRegistry.end(), magnet) == sceneMagnetsRegistry.end()) {
+        sceneMagnetsRegistry.push_back(magnet);
+    }
+}
+
+void MagneticBody3D::unregister_magnet(MagneticBody3D* magnet) {
+    auto registryElement = std::find(sceneMagnetsRegistry.begin(), sceneMagnetsRegistry.end(), magnet);
+    if (registryElement != sceneMagnetsRegistry.end()) {
+        sceneMagnetsRegistry.erase(registryElement);
+    }
+}
+
+
+// --- Getters and setters ---
 
 // Magnet type
 MagneticBody3D::MagnetTypes MagneticBody3D::get_magnet_type() const {

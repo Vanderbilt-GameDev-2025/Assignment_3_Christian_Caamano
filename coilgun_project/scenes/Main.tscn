@@ -1,0 +1,25 @@
+[gd_scene load_steps=3 format=3 uid="uid://xulywfajan8p"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_kvkpi"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_lwd3y"]
+points = PackedVector3Array(0.5, 0.5, 0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, -0.5, 0.5, -0.5, -0.5, -0.5, 0.5, -0.5, -0.5, -0.5)
+
+[node name="Node3D" type="Node3D"]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_kvkpi")
+
+[node name="MagneticBody3D" type="MagneticBody3D" parent="MeshInstance3D"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshInstance3D/MagneticBody3D"]
+shape = SubResource("ConvexPolygonShape3D_lwd3y")
+
+[node name="MeshInstance3D2" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.77373, 0, 0)
+mesh = SubResource("BoxMesh_kvkpi")
+
+[node name="MagneticBody3D" type="MagneticBody3D" parent="MeshInstance3D2"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MeshInstance3D2/MagneticBody3D"]
+shape = SubResource("ConvexPolygonShape3D_lwd3y")
