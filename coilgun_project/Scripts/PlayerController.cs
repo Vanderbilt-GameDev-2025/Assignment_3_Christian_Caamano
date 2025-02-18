@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Diagnostics;
 
 public partial class PlayerController : CharacterBody3D
 {
@@ -22,14 +23,14 @@ public partial class PlayerController : CharacterBody3D
 	private Node3D twistPivot;
 	private Node3D pitchPivot;
 
-	// Interaction logic variables
-	private RayCast3D interactionRay;
+	// Coilgun interaction logic
+	[Export]
+	private Node3D coilgunNode;
 	
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
 	{
 		groundCheck = GetNode<RayCast3D>("GroundCheck");
-		interactionRay = GetNode<RayCast3D>("TwistPivot/PitchPivot/Camera3D/InteractionRay");
 
 		twistPivot = GetNode<Node3D>("TwistPivot");
 		pitchPivot = GetNode<Node3D>("TwistPivot/PitchPivot");
@@ -93,6 +94,14 @@ public partial class PlayerController : CharacterBody3D
 		Velocity = newVel;
 		MoveAndSlide();
 	}
+
+	public override void _Input(InputEvent @event)
+    {
+        if (@event.IsActionPressed("interact"))
+        {
+			coilgunNode.Call("fire_coilgun");
+        }
+    }
 
     public override void _UnhandledInput(InputEvent @event)
     {

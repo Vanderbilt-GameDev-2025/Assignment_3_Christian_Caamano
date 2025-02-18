@@ -136,7 +136,7 @@ void MagneticDebugDraw::update_debug_visuals() {
     const std::vector<MagneticBody3D*>& magnets = MagneticBody3D::get_magnets_registry();
     
     for (const auto& magnet : magnets) {
-        if (!magnet->is_on()) continue;
+        if (!magnet->get_on()) continue;
         
         Vector3 magnet_pos = magnet->get_global_position();
         float influence_radius = Math::sqrt(magnet->get_max_influence_radius_sqr());
@@ -159,7 +159,7 @@ void MagneticDebugDraw::update_debug_visuals() {
         // Draw force vectors between this magnet and others
         for (const auto& other : magnets) {
             if (other == magnet) continue;
-            if (!other->is_on()) continue;
+            if (!other->get_on()) continue;
             
             if (magnet->will_be_influenced_by(*other)) {
                 Vector3 force = magnet->calculate_force_from_magnet(*other);

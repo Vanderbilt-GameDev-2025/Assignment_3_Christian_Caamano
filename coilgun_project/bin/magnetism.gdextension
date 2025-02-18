@@ -32,3 +32,6 @@ ios.debug = {
 ios.release = {
     "res://bin/libgodot-cpp.ios.template_release.xcframework": ""
 }
+
+[dotnet]
+assembly_name="MagneticPhysics"

@@ -45,7 +45,7 @@ public:
      */
     ~MagneticBody3D();
 
-    // --- Getters ---
+    // --- Getters and setters ---
 
     /**
      * Gets the static magnets registry.
@@ -68,9 +68,16 @@ public:
     double get_max_influence_radius_sqr();
 
     /**
-     * Returns true if this magnet is on, false if off.
+     * Gets the activation state for this magnet. Returns true if the magnet is on, false if off.
      */
-    bool is_on();
+    bool get_on();
+
+    /**
+     * Turns this magnet on or off according to the parameter state.alignas
+     * 
+     * @param newState The new activation state for this magnet.
+     */
+    void set_on(bool newState);
 
 
     // --- Core magnetism methods ---

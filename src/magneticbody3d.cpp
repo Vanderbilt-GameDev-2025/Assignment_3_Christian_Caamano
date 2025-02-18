@@ -32,6 +32,9 @@ void MagneticBody3D::_bind_methods() {
     ClassDB::bind_method(D_METHOD("set_strength", "strength"), &MagneticBody3D::set_strength);
     ClassDB::bind_method(D_METHOD("get_strength"), &MagneticBody3D::get_strength);
 
+    ClassDB::bind_method(D_METHOD("set_on", "on"), &MagneticBody3D::set_on);
+    ClassDB::bind_method(D_METHOD("get_on"), &MagneticBody3D::get_on);
+
     // Register properties for the editor
     ADD_PROPERTY(PropertyInfo(Variant::INT, "magnet_type", PROPERTY_HINT_ENUM, "Permanent,Temporary,Electromagnet"), "set_magnet_type", "get_magnet_type");
     ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "strength"), "set_strength", "get_strength");
@@ -131,6 +134,9 @@ void MagneticBody3D::_physics_process(double delta) {
     // If this magnet is currently off, it should be excluded from magnetism calculations.
     if (!on) return;
 
+    // It is assumed that temporary magnets are currently not magnetized, until influenced by another magnet in the code below.
+    magnetized = false;
+
     // Apply forces to this magnet.
     for (const auto& otherMagnet : sceneMagnetsRegistry) {
         if (otherMagnet != this) {
@@ -192,7 +198,10 @@ double MagneticBody3D::get_max_influence_radius_sqr() {
     return maxInfluenceRadiusSqr;
 }
 
-// Activation
-bool MagneticBody3D::is_on() {
+// Activation state
+bool MagneticBody3D::get_on() {
     return on;
+}
+void MagneticBody3D::set_on(bool newState) {
+    on = newState;
 }
