@@ -5,34 +5,59 @@ var coils: Array[MagneticBody3D] = []
 
 # Reference to projectile scene for spawning
 @export var projectile_scene: PackedScene
-
-# Reference to spawn point (can be a Node3D marker)
 @export var spawn_point: Node3D
 
-# Timing settings
-var activation_delay: float = 0.01  # Delay between activating each coil
-var active_duration: float = 0.04  # How long each coil stays active
+# Physics-based timing settings
+@export var physics_steps_per_activation: int = 2  # How many physics steps each coil stays active
+@export var max_projectile_speed: float = 100.0    # Maximum allowed projectile speed
 
-# Flag to track if coilgun is currently firing
+# Projectile lifetime in seconds (set to 0 to disable auto-removal)
+@export var projectile_lifetime: float = 1.0
+
+# Firing sequence state
 var is_firing: bool = false
-
-# Currently active projectile
 var current_projectile: MagneticBody3D = null
+var current_coil_index: int = -1      # -1 means no active coil
+var steps_remaining: int = 0          # Steps remaining for current coil
 
 func _ready():
     # Get all child electromagnets and store them in order
     for child in get_children():
         if child is MagneticBody3D and child.get_magnet_type() == MagneticBody3D.Electromagnet:
             coils.append(child)
-            
+    
     # Sort coils by their Z position to ensure proper sequence
     coils.sort_custom(func(a, b): return a.global_position.z > b.global_position.z)
+
+func _physics_process(_delta):
+    if not is_firing:
+        return
+        
+    if current_projectile:
+        # Clamp projectile velocity to prevent extreme physics responses
+        if current_projectile.linear_velocity.length() > max_projectile_speed:
+            current_projectile.linear_velocity = current_projectile.linear_velocity.normalized() * max_projectile_speed
+        
+        # Debug velocity
+        print_debug("Projectile Velocity: ", current_projectile.linear_velocity)
+    
+    # Handle coil timing
+    if steps_remaining > 0:
+        steps_remaining -= 1
+        if steps_remaining == 0:
+            deactivate_current_coil()
+    elif current_coil_index < coils.size() - 1:
+        # Activate next coil
+        activate_next_coil()
+    else:
+        # All coils have fired
+        end_firing_sequence()
 
 func spawn_projectile() -> MagneticBody3D:
     if not projectile_scene:
         print_debug("ERROR: No projectile scene set!")
         return null
-        
+    
     # Instance the projectile scene
     var instance = projectile_scene.instantiate() as MagneticBody3D
     if not instance:
@@ -42,75 +67,88 @@ func spawn_projectile() -> MagneticBody3D:
     # Add it to the scene
     get_tree().root.add_child(instance)
     
-    # Position it at the spawn point if one is set, otherwise at the first coil
+    # Position it at the spawn point or behind first coil
     if spawn_point:
         instance.global_transform = spawn_point.global_transform
     elif coils.size() > 0:
-        # Position slightly behind first coil
         var spawn_position = coils[0].global_position
         spawn_position.z -= 1.0  # Adjust this offset as needed
         instance.global_position = spawn_position
+
+    # Reset projectile physics state
+    instance.linear_velocity = Vector3.ZERO
+    instance.angular_velocity = Vector3.ZERO
     
+    # Give physics time to stabilize
+    instance.set_deferred("freeze", true)
+    # Wait for 2 physics frames
+    await get_tree().physics_frame
+    await get_tree().physics_frame
+    instance.set_deferred("freeze", false)
+    await get_tree().physics_frame  # Wait one more frame before proceeding
+
+    # Schedule the projectile for removal after its lifetime expires (if set)
+    if projectile_lifetime > 0:
+        var timer = get_tree().create_timer(projectile_lifetime)
+        timer.timeout.connect(instance.queue_free)
+
     print_debug("Spawned new projectile")
     return instance
 
-func fire_coil_sequence():
-    is_firing = true
-    
-    # Schedule activation and deactivation for each coil
-    for i in range(coils.size()):
-        var activation_time = i * activation_delay
-        var deactivation_time = activation_time + active_duration
-        
-        # Schedule activation
-        get_tree().create_timer(activation_time).timeout.connect(
-            func(): activate_coil(i)
-        )
-        
-        # Schedule deactivation
-        get_tree().create_timer(deactivation_time).timeout.connect(
-            func(): deactivate_coil(i)
-        )
-    
-    # Schedule the end of firing sequence
-    var sequence_duration = (coils.size() * activation_delay) + active_duration
-    get_tree().create_timer(sequence_duration).timeout.connect(
-        func(): end_firing_sequence()
-    )
+func activate_next_coil():
+    current_coil_index += 1
+    if current_coil_index < coils.size():
+        var coil = coils[current_coil_index]
+        if is_projectile_valid_for_coil(coil):
+            print_debug("Activating coil ", current_coil_index)
+            coil.set_on(true)
+            steps_remaining = physics_steps_per_activation
+        else:
+            # Skip this coil if projectile isn't in valid position
+            activate_next_coil()
 
-func activate_coil(index: int):
-    if index >= 0 and index < coils.size():
-        print_debug("Activating coil ", index)
-        coils[index].set_on(true)
+func deactivate_current_coil():
+    if current_coil_index >= 0 and current_coil_index < coils.size():
+        print_debug("Deactivating coil ", current_coil_index)
+        coils[current_coil_index].set_on(false)
 
-func deactivate_coil(index: int):
-    if index >= 0 and index < coils.size():
-        print_debug("Deactivating coil ", index)
-        coils[index].set_on(false)
+func is_projectile_valid_for_coil(coil: MagneticBody3D) -> bool:
+    if not current_projectile:
+        return false
+    # Check if projectile is in a valid position relative to coil
+    var to_projectile = current_projectile.global_position - coil.global_position
+    var forward = -coil.global_transform.basis.z
+    return to_projectile.dot(forward) < 0
 
-func end_firing_sequence():
-    is_firing = false
-    print_debug("Firing sequence complete")
-    # Optionally, you could queue_free() the projectile here if you want to clean it up
-    # current_projectile.queue_free()
-
-# Start firing sequence
 func fire_coilgun():
     if not is_firing:
         print_debug("=== Starting Coilgun Firing Sequence ===")
         reset_coilgun()
         
         # Spawn new projectile
-        current_projectile = spawn_projectile()
+        current_projectile = await spawn_projectile()
         if current_projectile:
-            fire_coil_sequence()
+            start_firing_sequence()
         else:
             print_debug("Failed to spawn projectile!")
 
-# Reset coilgun to initial state
-func reset_coilgun():
-    print_debug("=== Resetting Coilgun ===")
+func start_firing_sequence():
+    is_firing = true
+    current_coil_index = -1
+    steps_remaining = 0
+    activate_next_coil()
+
+func end_firing_sequence():
+    print_debug("=== Firing Sequence Complete ===")
     is_firing = false
+    deactivate_current_coil()
+    current_coil_index = -1
+    steps_remaining = 0
+
+func reset_coilgun():
+    is_firing = false
+    current_coil_index = -1
+    steps_remaining = 0
     
     # Deactivate all coils
     for coil in coils:

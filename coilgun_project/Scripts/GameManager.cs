@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Diagnostics;
 
 /// <summary>
 /// Manages the game state at the highest level, including win/lose state, UI, and actions like quitting and restarting the game.
@@ -30,5 +31,18 @@ public partial class GameManager : Node
 		{
             GetTree().Quit();
 		}
+
+        // Toggle fullscreen mode on/off.
+        if (@event.IsActionPressed("fullscreen"))
+        {
+            if (!(DisplayServer.WindowGetMode() == DisplayServer.WindowMode.Fullscreen))
+            {
+                DisplayServer.WindowSetMode(DisplayServer.WindowMode.Fullscreen);
+            }
+            else
+            {
+                DisplayServer.WindowSetMode(DisplayServer.WindowMode.Windowed);
+            }
+        }
     }
 }
