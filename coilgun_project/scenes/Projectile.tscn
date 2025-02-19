@@ -4,8 +4,9 @@
 friction = 0.0
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_el74s"]
-albedo_color = Color(1, 0, 0, 1)
-emission_enabled = true
+albedo_color = Color(0.780694, 4.54836e-06, 4.81307e-07, 1)
+metallic = 1.0
+roughness = 0.22
 emission = Color(1, 0, 0, 1)
 
 [sub_resource type="SphereMesh" id="SphereMesh_isg3s"]
