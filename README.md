@@ -42,7 +42,7 @@ This debugging module enables realtime visualization of the sphere of influence 
 To test the module, a 3D "coilgun" was made, involving a linear array of block-shaped electromagnets in the scene and a custom timing script. Using the script, these magnets were turned on and off in a precise sequence to launch a temporary magnet projectile.
 Testing was successful, though a limitation with temporary magnets was discovered.
 
-An additional smaller test was made involving ball magnets (permanent type magnets). About a dozen ball magnets were spaced apart from each other in a rough grid. Upon running the scene, these magnets clustered together. Testing was successful, though fine-tuning mass and strength properties for realistic interactions proved challenging.
+An additional smaller test was made involving ball magnets (permanent type magnets). About a dozen ball magnets were spaced apart from each other in a rough grid. Upon running the scene, these magnets clustered together. Testing was successful, though fine-tuning mass and magnet strength for realistic interactions proved challenging.
 
 
 ## Limitations & Areas for Improvement
@@ -60,4 +60,4 @@ To run the demo, perform the following steps:
 1. Clone this repository to your device.
 2. Open Godot, click "Import" and open the folder in this repository named "coilgun_project".
 3. Open this project in the editor and click play. Use WASD to move, spacebar to jump, mouse to look around, and left mouse button to fire the coilgun. Toggle fullscreen on/off with F12.
-4. If an error is encountered, please contact me at my email.
+4. If an error is encountered, please contact me via email.
