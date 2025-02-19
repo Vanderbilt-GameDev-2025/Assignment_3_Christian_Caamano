@@ -35,7 +35,7 @@ public:
     };
     
 
-    // --- Public methods ---
+    // --- Constructor/destructor ---
 
     /** Default constructor */ 
     MagneticBody3D() = default;
@@ -45,30 +45,41 @@ public:
      */
     ~MagneticBody3D();
 
-    // --- Getters and setters ---
+
+    // --- Public getters and setters ---
 
     /**
-     * Gets the static magnets registry.
+     * Gets the registry containing references to all the magnets in the scene.
+     * 
+     * @return A reference to the static magnets registry.
      */
     static std::vector<MagneticBody3D*>& get_magnets_registry();
 
     /**
-     * Gets the magnet type for this object.
+     * Gets the magnet type for this magnet.
+     * 
+     * @return The magnet's magnet type.
      */
     MagnetTypes get_magnet_type() const;
 
     /**
-     * Gets the strength for this object.
+     * Gets the strength for this magnet.
+     * 
+     * @return The magnet's strength.
      */
     double get_strength() const;
 
     /**
      * Gets the square of the radius of the sphere of influence for this magnet.
+     * 
+     * @return The square of the max influence radius.
      */
     double get_max_influence_radius_sqr();
 
     /**
-     * Gets the activation state for this magnet. Returns true if the magnet is on, false if off.
+     * Gets the activation state for this magnet.
+     * 
+     * @return True if the magnet is on, false if off.
      */
     bool get_on();
 
@@ -88,6 +99,7 @@ public:
      * as defined by its maxInfluenceRadiusSqr.
      * 
      * @param other The other magnet which may or may not exert an influence on this object.
+     * @return True if the other magnet will exert an influence on this one, false if not.
      */
     bool will_be_influenced_by(const MagneticBody3D& other);
 
@@ -95,6 +107,7 @@ public:
      * Calculates the magnetic force exerted on this magnet by another magnet.
      * 
      * @param other The other magnet.
+     * @return The vector indicating the central force this magnet will experience.
      */
     Vector3 calculate_force_from_magnet(const MagneticBody3D& other) const;
 
@@ -102,6 +115,7 @@ public:
      * Calculates the torque exerted on this magnet by another magnet due to their dipoles seeking to align.
      * 
      * @param other The other magnet.
+     * @return The vector indicating the torque this magnet will experience.
      */
     Vector3 calculate_torque_from_magnet(const MagneticBody3D& other) const;
 
@@ -161,7 +175,7 @@ private:
     static std::vector<MagneticBody3D*> sceneMagnetsRegistry;
 
 
-    // --- Getters and setters ---
+    // --- Private setters ---
 
     // NOTE: The setters for strength and magnet type are private, as these properties
     // are meant to be invariant during runtime. They can only be changed in the editor.

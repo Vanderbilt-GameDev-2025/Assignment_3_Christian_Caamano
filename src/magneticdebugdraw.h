@@ -12,7 +12,7 @@ class MagneticDebugDraw : public Node3D {
 
 public:
     MagneticDebugDraw();
-    ~MagneticDebugDraw();
+    ~MagneticDebugDraw() = default;
 
     void _ready() override;
     void _process(double delta) override;

@@ -1,5 +1,3 @@
-// Implementation file:
-
 #include "magneticdebugdraw.h"
 #include <godot_cpp/variant/utility_functions.hpp>
 #include <godot_cpp/variant/color.hpp>
@@ -13,15 +11,6 @@ MagneticDebugDraw::MagneticDebugDraw() {
     influenceMesh = memnew(ImmediateMesh);
     influenceMeshInstance = memnew(MeshInstance3D);
     influenceMaterial = memnew(StandardMaterial3D);
-}
-
-MagneticDebugDraw::~MagneticDebugDraw() {
-    // memdelete(forceMesh);
-    // memdelete(forceMeshInstance);
-    // memdelete(forceMaterial);
-    // memdelete(influenceMesh);
-    // memdelete(influenceMeshInstance);
-    // memdelete(influenceMaterial);
 }
 
 void MagneticDebugDraw::_bind_methods() {

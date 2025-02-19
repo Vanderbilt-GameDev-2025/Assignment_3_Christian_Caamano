@@ -13,7 +13,7 @@ using namespace godot;
 std::vector<MagneticBody3D*> MagneticBody3D::sceneMagnetsRegistry;
 
 MagneticBody3D::~MagneticBody3D() {
-    // Remove magnet from static registry
+    // Remove magnet from the static registry
     unregister_magnet(this);
 }
 
@@ -21,11 +21,12 @@ MagneticBody3D::~MagneticBody3D() {
 // --- Godot bindings ---
 
 void MagneticBody3D::_bind_methods() {
-    // Property bindings
+    // Magnet type enum
     BIND_ENUM_CONSTANT(Permanent);
     BIND_ENUM_CONSTANT(Temporary);
     BIND_ENUM_CONSTANT(Electromagnet);
     
+    // Getters and setters
     ClassDB::bind_method(D_METHOD("set_magnet_type", "type"), &MagneticBody3D::set_magnet_type);
     ClassDB::bind_method(D_METHOD("get_magnet_type"), &MagneticBody3D::get_magnet_type);
 
@@ -35,7 +36,7 @@ void MagneticBody3D::_bind_methods() {
     ClassDB::bind_method(D_METHOD("set_on", "on"), &MagneticBody3D::set_on);
     ClassDB::bind_method(D_METHOD("get_on"), &MagneticBody3D::get_on);
 
-    // Register properties for the editor
+    // Expose magnet type and strength to the editor
     ADD_PROPERTY(PropertyInfo(Variant::INT, "magnet_type", PROPERTY_HINT_ENUM, "Permanent,Temporary,Electromagnet"), "set_magnet_type", "get_magnet_type");
     ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "strength"), "set_strength", "get_strength");
 }
@@ -44,7 +45,7 @@ void MagneticBody3D::_bind_methods() {
 // --- Core methods / magnetic physics calculations ---
 
 bool MagneticBody3D::will_be_influenced_by(const MagneticBody3D& other) {
-    // If the other magnet is off, no influence.
+    // If the other magnet is off, it exerts no influence.
     if (!other.on) {
         return false;
     }
@@ -65,50 +66,66 @@ bool MagneticBody3D::will_be_influenced_by(const MagneticBody3D& other) {
 }
 
 Vector3 MagneticBody3D::calculate_force_from_magnet(const MagneticBody3D& other) const {
-    // Modified force equation for game-appropriate magnitudes
-    // Still maintains inverse square law behavior but scaled for gameplay
-    const double FORCE_SCALING = 100.0; // Scaling factor to make forces visible
-    
+    // The calculation below is roughly based on real magnetism formulas.
+    // Essentially, the inverse square law is used to calculate force magnitude based on proximity.
+    // This is then scaled based on the magnets' strengths, their relative alignments, and a custom scaling factor.
+    // Force direction is determined by the distance vector between the two magnets.
+
+    // Define scaling factor to make forces visible in-game.
+    const double FORCE_SCALING = 100.0;
+
+    // Get the length of the distance between the two magnets.
     Vector3 r = other.get_global_position() - get_global_position();
     double r_len = r.length();
     
-    // Prevent division by zero and too large forces at very small distances
+    // Establish a minimum distance length to prevent division by zero and too large forces at very small distances.
     if (r_len < 0.01) r_len = 0.01;
     
+    // Get the unit vector of the distance between the magnets.
+    // This will determine the axis of the final force vector.
     Vector3 r_hat = r / r_len;
     
-    // Get forward directions of both magnets
+    // Get the forward (local Z) directions of both magnets.
     Vector3 m1_dir = get_global_transform().basis.get_column(2).normalized();
     Vector3 m2_dir = other.get_global_transform().basis.get_column(2).normalized();
     
-    // Calculate alignment factor (-1 to 1) to determine attraction/repulsion
+    // Calculate alignment factor (-1 to 1) to determine whether attraction or repulsion will occur, and at what strength.
     double alignment = m1_dir.dot(m2_dir);
     
-    // Basic inverse square law with alignment
+    // Determine the final magnitude of the force experienced by this magnet.
     double force_magnitude = FORCE_SCALING * strength * other.strength * alignment / (r_len * r_len);
     
+    // Put together and return the final, scaled force vector.
     return r_hat * force_magnitude;
 }
 
 Vector3 MagneticBody3D::calculate_torque_from_magnet(const MagneticBody3D& other) const {
-    const double TORQUE_SCALING = 10.0; // Scaling factor for readable torque
+    // The calculation below is roughly based on real magnetism formulas.
+    // Essentially, the inverse square law is used to calculate torque magnitude based on proximity.
+    // This is then scaled based on the magnets' strengths and a custom scaling factor.
+    // Torque direction is determined by the relative pole orientations of the magnets.
+
+    // Define scaling factor to make torque visible in-game.
+    const double TORQUE_SCALING = 10.0;
     
+    // Get the length of the distance between the two magnets.
     Vector3 r = other.get_global_position() - get_global_position();
     double r_len = r.length();
     
-    // Prevent extreme torques at very small distances
+    // Establish a minimum distance length to prevent division by zero and too large torques at very small distances.
     if (r_len < 0.1) r_len = 0.1;
     
-    // Get magnet directions
+    // Get the forward (local Z) directions of both magnets.
     Vector3 m1_dir = get_global_transform().basis.get_column(2).normalized();
     Vector3 m2_dir = other.get_global_transform().basis.get_column(2).normalized();
     
-    // Calculate torque that tries to align the magnets
+    // Calculate torque direction.
     Vector3 torque = m1_dir.cross(m2_dir);
     
-    // Scale torque by strength and distance
+    // Determine the final magnitude of the torque experienced by this magnet.
     double torque_magnitude = TORQUE_SCALING * strength * other.strength / (r_len * r_len);
     
+    // Put together and return the final, scaled torque vector.
     return torque * torque_magnitude;
 }
 

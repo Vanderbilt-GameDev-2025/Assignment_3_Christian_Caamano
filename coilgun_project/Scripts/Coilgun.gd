@@ -1,9 +1,9 @@
 extends Node3D
 
-# Array to store references to electromagnet nodes
+# Array to store references to electromagnets
 var coils: Array[MagneticBody3D] = []
 
-# Reference to projectile scene for spawning
+# Reference to projectile scene to spawn projectiles
 @export var projectile_scene: PackedScene
 @export var spawn_point: Node3D
 
@@ -17,9 +17,12 @@ var coils: Array[MagneticBody3D] = []
 # Firing sequence state
 var is_firing: bool = false
 var current_projectile: MagneticBody3D = null
-var current_coil_index: int = -1      # -1 means no active coil
+var current_coil_index: int = -1      # -1 indicates no active coil
 var steps_remaining: int = 0          # Steps remaining for current coil
 
+"""
+Initialize coil array at the beginning of the scene.
+"""
 func _ready():
     # Get all child electromagnets and store them in order
     for child in get_children():
@@ -29,6 +32,9 @@ func _ready():
     # Sort coils by their Z position to ensure proper sequence
     coils.sort_custom(func(a, b): return a.global_position.z > b.global_position.z)
 
+"""
+Process calculations in time with the physics engine.
+"""
 func _physics_process(_delta):
     if not is_firing:
         return
@@ -53,6 +59,9 @@ func _physics_process(_delta):
         # All coils have fired
         end_firing_sequence()
 
+"""
+Spawn a projectile into the scene.
+"""
 func spawn_projectile() -> MagneticBody3D:
     if not projectile_scene:
         print_debug("ERROR: No projectile scene set!")
@@ -95,6 +104,9 @@ func spawn_projectile() -> MagneticBody3D:
     print_debug("Spawned new projectile")
     return instance
 
+"""
+Activate the next coil in the sequence.
+"""
 func activate_next_coil():
     current_coil_index += 1
     if current_coil_index < coils.size():
@@ -107,11 +119,17 @@ func activate_next_coil():
             # Skip this coil if projectile isn't in valid position
             activate_next_coil()
 
+"""
+Deactivate the current coil.
+"""
 func deactivate_current_coil():
     if current_coil_index >= 0 and current_coil_index < coils.size():
         print_debug("Deactivating coil ", current_coil_index)
         coils[current_coil_index].set_on(false)
 
+"""
+Check if the projectile is within the appropriate proximity of the next coil to activate.
+"""
 func is_projectile_valid_for_coil(coil: MagneticBody3D) -> bool:
     if not current_projectile:
         return false
@@ -120,6 +138,9 @@ func is_projectile_valid_for_coil(coil: MagneticBody3D) -> bool:
     var forward = -coil.global_transform.basis.z
     return to_projectile.dot(forward) < 0
 
+"""
+Fire the coilgun if it is not currently in a firing sequence and a projectile has been loaded.
+"""
 func fire_coilgun():
     if not is_firing:
         print_debug("=== Starting Coilgun Firing Sequence ===")
@@ -132,12 +153,18 @@ func fire_coilgun():
         else:
             print_debug("Failed to spawn projectile!")
 
+"""
+Begin the firing sequence.
+"""
 func start_firing_sequence():
     is_firing = true
     current_coil_index = -1
     steps_remaining = 0
     activate_next_coil()
 
+"""
+End the firing sequence.
+"""
 func end_firing_sequence():
     print_debug("=== Firing Sequence Complete ===")
     is_firing = false
@@ -145,6 +172,9 @@ func end_firing_sequence():
     current_coil_index = -1
     steps_remaining = 0
 
+"""
+Reset the coilgun prior to the next firing sequence.
+"""
 func reset_coilgun():
     is_firing = false
     current_coil_index = -1
