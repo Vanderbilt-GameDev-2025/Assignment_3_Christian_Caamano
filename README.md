@@ -24,7 +24,7 @@ Description: This module extends the Jolt physics engine by introducing magnetic
 
 1. A MagneticBody3D can have one of three types: Permanent, Temporary, and Electromagnet. This can be configured in the editor.
 - Permanent magnets are always on.
-- Temporary magnets become magnetized in the presence of a permanent magnet or another magnetized temporary magnet. For the purposes of this module, this effect is permanent (once it becomes magnetized, it will remain so for the remainder of the scene).
+- Temporary magnets become "magnetized" in the presence of a permanent magnet or another magnetized temporary magnet. For the purposes of this module, this effect is permanent (once it becomes magnetized, it will remain so for the remainder of the scene). Note that being magnetized is a separate property from being on/off.
 - Electromagnets act like permanent magnets, but can be turned on and off on demand.
 2. Magnets that are marked as off will not be processed by the module until turned on.
 3. Every MagneticBody3D is implemented as a spherical (point source) magnetic dipole, with pole direction defined by the orientation of object's local Z axis.
