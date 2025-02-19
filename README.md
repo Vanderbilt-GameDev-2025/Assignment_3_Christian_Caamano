@@ -13,7 +13,7 @@ Class: CS 3981 - Game Engine Design
 Instructor: Bobby Bodenheimer
 
 
-#### Link to demo video: 
+#### Link to demo video: https://www.youtube.com/watch?v=sdcfjFty9Fc
 
 
 ## Description & Functionality
@@ -32,6 +32,9 @@ Description: This module extends the Jolt physics engine by introducing magnetic
 5. A magnet's strength can be configured in the editor.
 6. Each magnet has a certain sphere of influence proportional to its strength. The higher a magnet's strength, the larger its sphere of influence. Other magnets within this sphere will be influenced by this magnet (i.e., will experience a force and torque), while ones outside the sphere will not be affected.
 7. Electromagnets can be turned on and off in GDScript.
+
+The module has a sibling debugging module titled MagneticDebugDraw, which extends Node3D.
+This debugging module enables realtime visualization of the sphere of influence of all magnets in the scene that are currently on, as well as all the forces currently influencing each magnet.
 
 
 ## Testing
@@ -57,3 +60,4 @@ To run the demo, perform the following steps:
 1. Clone this repository to your device.
 2. Open Godot, click "Import" and open the folder in this repository named "coilgun_project".
 3. Open this project in the editor and click play. Use WASD to move, spacebar to jump, mouse to look around, and left mouse button to fire the coilgun. Toggle fullscreen on/off with F12.
+4. If an error is encountered, please contact me at my email.
